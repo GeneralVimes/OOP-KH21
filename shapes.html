@@ -1,0 +1,125 @@
+<html>
+    <head>
+    </head>
+    <body>
+        <script>
+            class Shape{//абстрактна фігура
+                constructor(x,y){////точка, що вважатиметься центром фігури
+                    this.x = x;
+                    this.y = y;
+                }
+                getArea(){///обчислення площі фігури
+                    return 0;
+                }
+                isPointInside(px, py){///чи є точка px, py всередині фігури
+                    return (px==this.x)&&(py==this.y)
+                }
+            }
+            class Circle extends Shape{
+                constructor(x,y,r){
+                    super(x,y)
+                    this.r = r;
+                }
+                getArea(){
+                    return Math.PI*this.r*this.r
+                }
+                isPointInside(px, py){
+                    let dx = px-this.x;
+                    let dy = py-this.y;
+                    return Math.sqrt(dx*dx+dy*dy)<=this.r
+                }
+            }
+            class Rectangle extends Shape{
+                constructor(x,y,w,h){
+                    super(x,y);
+                    this.w = w;
+                    this.h = h;
+                }
+                getArea(){
+                    return this.w*this.h
+                }
+                isPointInside(px, py){
+                    let dx = px-this.x;
+                    let dy = py-this.y;
+                    //
+                    return (Math.abs(dx)<=this.w/2)&&(Math.abs(dy)<=this.h/2)
+                }                
+            }
+
+            class Square extends Rectangle{
+                constructor(x,y,a){
+                    super(x,y,a,a)          
+                }
+            }
+
+            let sq = new Square(0,0,2);
+            let cr = new Circle(0,0,1);
+/*
+            console.log(sq.isPointInside(1,1))
+            console.log(sq.isPointInside(1,-1))
+            console.log(sq.isPointInside(2,1))
+            console.log(cr.isPointInside(0,0))
+            console.log(cr.isPointInside(1,1))
+            console.log(cr.isPointInside(0.5,0.5))*/
+
+            let tm = new Date();
+            //метод Монте-Карло, кидаємо у коло 1000000 точок випадкових
+            let n = 400000000;
+            let numInside = 0;
+            //будемо кидати у квадрат n випадкових точок
+            for (let i=0; i<n; i++){
+                let px = Math.random()*2-1
+                let py = Math.random()*2-1
+                if (cr.isPointInside(px, py)){
+                    numInside++;
+                }
+            }
+            //numInside/n має дорівнювати pi/4
+            console.log(numInside/n*4);
+            let tm1 = new Date()
+            console.log(tm1-tm);
+            tm=tm1;
+
+            //Варіант 2 - обрати 1000000 точок у вигляді регулярної решітки
+            let m = 20000;
+            n = m*m;
+            numInside = 0;
+            let step = 1/m;
+            for (let cx = 0; cx<m; cx++){
+                for (let cy = 0; cy<m; cy++){
+                    px = step*(cx+0.5);
+                    py = step*(cy+0.5);
+                    if (cr.isPointInside(px, py)){
+                        numInside++;
+                    }
+                }
+            }
+            //numInside/n має дорівнювати pi/4
+            console.log(numInside/n*4); 
+            tm1 = new Date()
+            console.log(tm1-tm);
+            tm=tm1;
+            
+            //Варіант 3 - накласти регулярну решітку, але точки барти не в серединах
+            //квадратиків, а випадково
+            m = 20000;
+            n = m*m;
+            numInside = 0;
+            step = 1/m;
+            for (let cx = 0; cx<m; cx++){
+                for (let cy = 0; cy<m; cy++){
+                    px = step*(cx+Math.random());
+                    py = step*(cy+Math.random());
+                    if (cr.isPointInside(px, py)){
+                        numInside++;
+                    }
+                }
+            }
+            //numInside/n має дорівнювати pi/4
+            console.log(numInside/n*4); 
+            tm1 = new Date()
+            console.log(tm1-tm);
+            tm=tm1;            
+        </script>
+    </body>
+</html>
