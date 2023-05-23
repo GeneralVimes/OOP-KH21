@@ -1,0 +1,140 @@
+<html>
+    <head>
+    </head>
+    <body>  
+        <script>
+            class Wallet{
+                constructor(){
+                    this.num1 = 0;//скільки 1-гривневих банкнот (штук)
+                    this.num2 = 0;//скільки 2-гривневих банкнот (штук)
+                    this.num5 = 0;//скільки 5-гривневих банкнот (штук)
+                }
+                putNoteIn(noteVal){//покласти банкноту noteVal у гаманець
+                    switch (noteVal){
+                        case 1:{
+                            this.num1++;
+                            break;
+                        }
+                        case 2:{
+                            this.num2++;
+                            break;
+                        }
+                        case 5:{
+                            this.num5++;
+                            break;
+                        }
+                    }
+                }
+                toString(){//функція що видає текстом, скільки у гаманці яких банкнот
+                    return "У гаманці:"+" купюр в 1 грн: "+this.num1+" купюр в 2 грн: "+this.num2+" купюр в 5 грн: "+this.num5/////
+                }
+                findTotalMoney(){//скільки всього грошей у гаманці
+                    return this.num1*1+this.num2*2+this.num5*5;
+                }
+                //Жадібний алгоритм працює так:
+                //робимо декілька кроків і на кожному кроці пробуємо найочевидніше розв'язання
+                //у даному вимадку спочтаку максимум суми намагаємочя видати 5-ками, решту - 2-ками і решту - 1цями
+                canPayExactAmount(val){//чи можна банкнотами з гаманця виплатити рівно val гривень?
+                    if (val>this.findTotalMoney){
+                        return false;
+                    }
+
+                    //return this.greedyAlgorythm(val);
+                    //замість жадібного алгоритму викликаємо рекурсивний
+                    return this.recursiveCanPayAmountWithNotes(val,[this.num1,this.num2,this.num5],2)
+                }
+
+                //val - сума, яку розмінюємо, notesAr - кількості банкнот, maxNoteId - найбільша використана банкнота
+                recursiveCanPayAmountWithNotes(val, notesAr, maxNoteId){
+                    //умова зупинки з результатом true - коли сума для розміну == 0
+                    if (val==0){
+                        return true;
+                    }
+
+                    //умова зупинки з результатом false - коли сума для розміну val буде більша ніж сума грошей у масиві з урахуванням maxNoteId
+                    let notesVals=[1,2,5];
+                    let sum = 0;
+                    for (let i=0; i<=maxNoteId; i++){
+                        sum+=notesAr[i]*notesVals[i];
+                    }
+                    if (sum<val){
+                        return false;
+                    }
+                    //якщо не зупинилися, пробуємо різні варіанти розміну
+                    let res=false;
+                    for (let k=0; k<=maxNoteId; k++){
+                        //пробуємо від суми val відняти банкноту з індексом k і розміняти нову суму тима банкнотами, що залишилися
+                        let newNotes = notesAr.slice();
+                        if (notesAr[k]>0){//якщо в наборі є банкноти заданої величини
+                            if (val>=notesVals[k]){//якщо сума для розміну не менша ніж величина розгляданої банкноти
+                                newNotes[k]--;//забираємо банкноту з доступних для подальшого розміну
+                                //заходимо рекурсивно у нову функцію перевірки розміну
+                                res ||= this.recursiveCanPayAmountWithNotes(val-notesVals[k],newNotes,k);
+                            }
+                        }
+                    }
+
+                    return res;
+                }
+
+                greedyAlgorythm(val){
+                    let valLeft=0;
+                    //пробуємо максимум числа набрати п'ятірками
+                    let maxNum5 = Math.floor(val/5);//скільки п'ятірок треба, щоб максимум наблизитися до числа val
+                    if (this.num5>=maxNum5){//якщо в нас вистачає п'ятірок щоб набрати цю суму
+                        //скільки залишається розміняти?
+                        //val-5*maxNum5 нам залишається розміняти
+                        valLeft = val-5*maxNum5//оцю суму треба розміняти лише 2ками та 1цями
+                    }else{//якщо не вистачає
+                        //скільки залишається розміняти?
+                        valLeft = val-5*this.num5//оцю суму треба розміняти лише 2ками та 1цями
+                    }
+                    //переходимо до питання: чи можемо ми розміняти суму valLeft лише 2ками та 1цями?
+                    return this.canPayAmountWith1And2(valLeft);                    
+                }
+
+                canPayAmountWith1And2(val){//чи можна лише 1цями та 2ками з гаманця виплатити рівно val гривень?
+                    //пробуємо максимум числа набрати двійками
+                    let maxNum2 = Math.floor(val/2);//скільки двійок треба, щоб максимум наблизитися до числа val
+                    let valLeft=0;
+                    if (this.num2>=maxNum2){//якщо в нас вистачає двійок щоб набрати цю суму
+                        //скільки залишається розміняти?
+                        valLeft = val-2*maxNum2//оцю суму треба розміняти лише 1цями
+                    }else{//якщо не вистачає
+                        valLeft = val-2*this.num2//оцю суму треба розміняти лише 1цями
+                    }
+                    //це можна зробити, якщо у гаманці вистачає одиниць, щоб розміняти valLeft
+                    return valLeft<=this.num1;
+                }
+            }
+
+            let wallet = new Wallet();
+            console.log(wallet.toString());
+            /*
+            wallet.putNoteIn(1)
+            wallet.putNoteIn(2)
+            wallet.putNoteIn(5)
+            wallet.putNoteIn(5)
+            wallet.putNoteIn(5)
+            wallet.putNoteIn(5)
+            console.log(wallet.toString());//"У гаманці: купюр в 1 грн: 1, купюр в 2 грн: 1, купюр в 5 грн: 4"
+            console.log(wallet.canPayExactAmount(10));//true
+            console.log(wallet.canPayExactAmount(17));//true
+            console.log(wallet.canPayExactAmount(14));//false
+            */
+            wallet.putNoteIn(2)
+            wallet.putNoteIn(2)
+            wallet.putNoteIn(2)
+            console.log(wallet.toString());
+            console.log("Чи можемо видати рівно 6 гривень?")
+            console.log(wallet.canPayExactAmount(6));//true
+            
+            wallet.putNoteIn(5)
+            console.log(wallet.toString());
+            console.log("Чи можемо видати рівно 6 гривень?")
+            console.log(wallet.canPayExactAmount(6));//маэ бути true, але жадыбний алгоритм видасть false
+
+
+        </script>
+    </body>
+</html>

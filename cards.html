@@ -1,0 +1,380 @@
+<html>
+    <head>
+    </head>
+    <body>
+        <script>
+            class Card{
+                constructor(v, s){
+                    this.value = v; //2-10 - цифри, 11 - валет, 12 - дама, 13 - король 14 - туз
+                    this.suit = s;  //0-чирва, 1 - бубна, 2 - хресті, 3 - пікі
+                }
+
+                toString(){
+                    let valuesNames = ["","","двійка","трійка","четвірка","п'ятірка",
+                                        "шістка","сімка","вісімка","дев'ятка","десятка",
+                                        "валет","дама","король","туз"]
+
+                    let suitsNames = ["чирв", "бубен", "хрестів", "пік"]
+                    
+                    return valuesNames[this.value]+" "+suitsNames[this.suit]
+
+                }
+            }
+
+            class Deck{
+                //обмежимо доступ ззовні до масиву cards
+                #cards //приватне поле оголошується решіткою перед іменем
+                constructor(){
+                    this.#cards = [];
+                }
+                //ініціалізація повної колоди
+                initDeck(){
+                    this.#cards.length = 0;
+                    for (let i=0; i<=3; i++){
+                        for (let j=2; j<=14; j++){
+                            this.#cards.push(new Card(j,i))
+                        }
+                    }
+                }
+                //перетасовування колоди
+                shuffle(){
+                    for (let i=0; i<this.#cards.length; i++){
+                        let j = Math.floor(Math.random()*this.#cards.length);
+
+                        let t = this.#cards[i];
+                        this.#cards[i]=this.#cards[j];
+                        this.#cards[j]=t;
+                    }
+                }
+                //видати карту
+                dealCard(){
+                    return this.#cards.shift()
+                }
+                //дізнатися поточну кількість карт
+                getCardsNumber(){
+                    return this.#cards.length;
+                }
+            }
+
+            class Player {
+                constructor (n, m){
+                    this.name = n;//ім'я
+                    this.money = m;//кількість грошей
+                    this.hand = [];//карти в руці
+
+                    this.isHumanPlayer = false;
+                    //І варіант: чи зупинився гравець, чи ні має бути властивістю плеєра
+                    this.hasStopped = false;//чи зупинився гравець брати карти
+                }
+                takeCard(deck){//взяти карту з колоди deck в руку
+                    this.hand.push(deck.dealCard())
+                }
+                //викликається перед стартом нової гри
+                reset(){
+                    //гравець може брати нові карти
+                    this.hasStopped = false;
+                    //прибираємо всі карти з руки
+                    this.hand.length = 0;
+                    //ті карти, що були в руці гравця будуть продовжутвати займати пам'ять
+                    //але оскільки на них не буде посилань з інших об'єктів,
+                    //їх прибере з пам'яти вбудований Garbage Collector
+                    //Альтернативний спосіб менеджменту пам'яті - повертати карти з руки до колоди
+                    //І використовувати їх наступні рази
+                    //Це підхід Object Pooling
+                }
+                //гравець вирішує, чи брати ще 1 карту з колоди
+                decide2TakeCard(){
+                    //рішення, чи тягнути карту має брати до уваги результат функції calculateCurrentScore
+                    if (this.hand.length<2){
+                        return true
+                    }
+                    //поки її не реалізували, нехай гравецб бере карти випадково
+                    if (Math.random()<0.5){
+                        this.dispatchEvent("take")
+                    }else{
+                        this.dispatchEvent("pass")
+                    }
+                    
+                }
+                //підрахунок очків в руці гравця
+                calculateCurrentScore(){
+                    //пробігтися по this.hand та визначити суму очок карт
+                    //2-10 як 2-10
+                    //J, Q, K - як 10
+                    //A - або 1 або 11 на розсуд гравця                    
+                    var res = 0;
+                    var numAces = 0;
+                    for (let i=0; i<this.hand.length; i++){
+                        let c = this.hand[i];
+                        if (c.value<=10){
+                           res+=c.value; 
+                        }else{
+                            if (c.value<=13){//J, Q, K
+                                res+=10;
+                            }else{//A
+                                res+=11;
+                                numAces++;
+                            }
+                        }
+                    }
+                    //перевіряємо, чи можемо позбавитися перебору, зарахувавши туди за 1
+                    if (res>21){
+                        if (numAces>0){
+                            let perebor = res-21;
+                            let num = Math.ceil(perebor/10);
+                            res-=10*(Math.min(numAces,num))
+                        }
+                    }
+                    return res;
+                }
+
+                countCardsInHand(){
+                    //функція повертає кількість карт у руці
+                }
+                getHighestCardValueInHand(){
+                    //функція повертає значення найстаршої карти у руці
+                    //якщо карт взагалі немає, має повертати 0
+                }
+                getNumberOfPairsInHand(){
+                    //функція повертає кількість пар карт у руці
+                    //якщо всі карти різні, має повертати 0
+                }
+                getNumberOfSuitInHand(suit){
+                    //функція повертає кількість карт в гравця із заданим suit (мастю)
+                }
+
+            }
+            //гравець зі стратегією, що бере карти, якщо поточка сума балів < деякого Х
+            class StategyPlayer extends Player{
+                constructor(n,m,x){
+                    super(n,m);
+                    this.X = x;
+                }
+                decide2TakeCard(){
+                    return this.calculateCurrentScore()<this.X;
+                }
+            }
+
+            class HumanPlayer extends Player{
+                constructor (n,m){
+                    super(n,m)
+                    this.isHumanPlayer = true;
+                }
+
+                decide2TakeCard(){
+                    alert("Your cards: "+this.hand.join("; "));
+                    let ans = prompt("Will you take a new card? y/n");
+                    return ans=="y";
+                }
+            }
+            /*
+            class CheaterPlayer extends Player{
+                constructor(n,m){
+                   super(n,m); 
+                }
+                decide2TakeCard(){
+                    let scr = this.calculateCurrentScore();
+                    //перед рішенням про взяття натсупної крати підглядаємо у колоду
+                    let nextCardVal = game.deck.#cards[0].value;
+                    if (nextCardVal<=10){
+                        scr+=nextCardVal;
+                    }else{
+                        if (nextCardVal<=13){
+                            scr+=10;
+                        }else{
+                            scr+=11;
+                        }
+                    }
+
+                    return scr<=21;
+                }
+            }
+*/
+            // реалізуємо Black Jack
+            class Game {
+                constructor(){
+                    this.deck = new Deck();
+                    this.players=[];
+                }
+                //запускаємо гравця у гру
+                addPlayer(pl){
+                    this.players.push(pl);
+                }
+
+                startTournament(n){//старт серії з декількох ігор
+                    //реєструємо перемоги гравців
+                    let victories={};
+                    for (let i=0; i<this.players.length; i++){
+                        victories[this.players[i].name] = 0;
+                    }
+                    //проводимо n ігор та дізнаємося переможців
+                    for (let k=0; k<n; k++){
+                        let gameResults = this.startGame();
+                        for (let i=0; i<gameResults.length; i++){
+                            victories[gameResults[i].name]++;
+                        }
+                    }
+
+                    console.log(victories)
+                }
+
+                initGame(){
+                    //створити нову колоду та перетасувати її
+                    this.deck.initDeck();
+                    this.deck.shuffle();
+
+                    //скидаємо hasStopped у всіх гравців у false, а також - карти в руці
+                    for (let i=0; i<this.players.length; i++){
+                        this.players[i].reset();
+                    }                    
+                }
+
+                finalizeGame(){
+                    //коли всі гравці зупинилися, треба підрахувати суму очок у їхніх колодах та визначити переможця
+                    //переможець той, хто наблизився до 21 або менше
+                    //будемо використовувати функцію calculateCurrentScore
+
+                    //просто будемо визначати гравця, який виграв (чи гравців)
+                    let winnerPlayers = [];
+                    let winnerScore = 0;
+
+                    for (let i=0; i<this.players.length; i++){
+                        let scr = this.players[i].calculateCurrentScore();
+                        if (scr <= 21){//якщо в гравця не перебір
+                            if (scr>winnerScore){
+                                winnerPlayers.length=0;
+                                winnerPlayers.push(this.players[i]);
+                                winnerScore=scr;
+                            }else{
+                                if (scr==winnerScore){
+                                    winnerPlayers.push(this.players[i]);
+                                }
+                            }
+                        }
+                    }
+                    return winnerPlayers;
+                }
+                //повертаємося у ігровий цикл після отримання рішення від плеєра playerId
+                resumeGameAfterDecision(playerId){
+                    
+
+                    for (let i=playerId+1; i<this.players.length; i++){
+                        let pl = this.players[i]
+                        //якщо гравець pl ще не сказав стоп, то питаємо його про його рішення:
+                        //брати ще карту чи зупинятися
+                        if (!pl.hasStopped){
+                            ask4PlayersDecision()
+
+                            //якщо гравець  - людина, то при виконані функції decide2TakeCard ця функція повинна зупинитися, а потім відновитися з тієї самої точки
+                            if (pl.decide2TakeCard()){//рішення гравця - чи брати ще карту
+                                if (this.deck.getCardsNumber()>0){//даємо карту, якщо вони є в колоді
+                                   pl.takeCard(this.deck) 
+                                }
+                            }else{
+                                pl.hasStopped = true;
+                            }
+                        }
+                    }                  
+                }
+
+                startGame(){//початок однієї гри між гравцями
+
+                    //опитувати гравців, що вони будуть робити: брати карту чи зупинятися
+                    while (true){
+                        //чи всі гравці сказали "стоп"?
+                        //або картив колоді закінчилися?
+                        if ((this.haveAllPlayersStopped()||this.deck.getCardsNumber()==0)){
+                            break;
+                        }
+                        //TODO: перевіряти, чи є карти в колоді для гравців
+                        let player2Ask = this.startGameRound(0);//провели раунд
+                        if (player2Ask!=-1){
+                            //отже, для гравця з номером player2Ask треба показати 2 кнопки "Take" та "Pass" та
+                        }
+                    }
+                    
+
+
+
+                    //ті, хто програв, втрачають гроші, в переможця збільшуються гроші
+                    
+                }
+
+
+                //чи всі гравці сказали "стоп"?
+                haveAllPlayersStopped(){
+                    for (let i=0; i<this.players.length; i++){
+                        let pl = this.players[i];
+                        //пробігаємося по всіх гравцях
+                        //і як тільки знаходимо такого, в кого pl.hasStopped==false
+                        //то перериваємося і повертаємо false
+
+                        if (pl.hasStopped==false){
+                            return false;
+                        }
+                    }
+                    //і лише наприкінці, якщо в усіх pl.hasStopped було true
+                    //то видаємо true
+                    return true;
+                }
+
+
+                //один раунд у грі: опитуємо кожного гравця, який ще не сказав "стоп"
+                //функція повертає або -1, якщо всі гравці зробили своє рішення у раунді
+                //або число - номер того гравця, рішення за якого має прийняти людина
+                startGameRound(firstPlayerId){
+                    //ця функція має повертати результат, що покаже, чи маємо ми чекати відповіді гравця-людини
+                    for (let i=firstPlayerId+1; i<this.players.length; i++){
+                        let pl = this.players[i]
+                        //якщо гравець pl ще не сказав стоп, то питаємо його про його рішення:
+                        //брати ще карту чи зупинятися
+                        if (!pl.hasStopped){
+                            if (pl.isHumanPlayer){
+                                return i;
+                            }
+                            //якщо гравець  - людина, то при виконані функції decide2TakeCard ця функція повинна зупинитися, а потім відновитися з тієї самої точки
+                            if (pl.decide2TakeCard()){//рішення гравця - чи брати ще карту
+                                if (this.deck.getCardsNumber()>0){//даємо карту, якщо вони є в колоді
+                                   pl.takeCard(this.deck) 
+                                }
+                            }else{
+                                pl.hasStopped = true;
+                            }
+                        }
+                    }
+                    return -1;
+                }
+
+            }
+
+            let pl = new StategyPlayer("John",100,17);
+            let pl2 = new HumanPlayer("Bill",100,18);
+            let game = new Game();
+            game.addPlayer(pl)
+            game.addPlayer(pl2)
+
+            //game.startTournament(10000);
+
+            //console.log(game.startGame());
+/*
+            game.startGame()
+            console.log(pl.hand.join("; "));
+            console.log("score:",pl.calculateCurrentScore(), 
+                        "number of cards:",pl.countCardsInHand(),
+                        "highest card value:",pl.getHighestCardValueInHand(),
+                        "number of pairs",pl.getNumberOfPairsInHand(),
+                        "number of hearts",pl.getNumberOfSuitInHand(0),
+                        "number of diamonds",pl.getNumberOfSuitInHand(1))
+
+            console.log(pl2.hand.join("; "));
+            console.log("score:",pl2.calculateCurrentScore(), 
+                        "number of cards:",pl2.countCardsInHand(),
+                        "highest card value:",pl2.getHighestCardValueInHand(),
+                        "number of pairs",pl2.getNumberOfPairsInHand(),
+                        "number of hearts",pl2.getNumberOfSuitInHand(0),
+                        "number of diamonds",pl2.getNumberOfSuitInHand(1));
+           */             
+
+        </script>  
+    </body>
+    </html>

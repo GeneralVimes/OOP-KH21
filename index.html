@@ -1,0 +1,146 @@
+<html>
+<head>
+</head>   
+<body>
+    <script>
+        console.log("Hello")
+
+        class Vehicle{
+            constructor (license){
+                this.license = license //license - номерний знак засобу руху
+            }
+        }
+        class Bike extends Vehicle{
+            constructor (license){
+                super(license)
+            }
+        }
+        class Car extends Vehicle{
+            constructor (license){
+                super(license)
+            }
+        }
+        class Van extends Vehicle{
+            constructor (license){
+                super(license)
+            }
+        }
+
+        class ParkingLot{
+            //створюємо ряд парковок з size слотів
+            constructor(size){
+                this.slots=[];
+                for (let i=0; i<size; i++){
+                    this.slots.push(null);
+                }
+            }
+            //намагаємося запаркувати засіб руху vehicle
+            park(vehicle){
+                //дізнатися довжину vehicle
+                //Bike 1 Car 2 Van 3
+                let len = 3;
+                if (vehicle instanceof Bike){
+                    len = 1
+                }else{
+                    if (vehicle instanceof Car){
+                        len = 2;
+                    }
+                }
+                //шукаємо перший блок з len вільних слотів
+                let id = this.findStartOfFreeSlotsSegment(len);
+                if (id==-1){//якщо блоку не знайдено, то повертаємо false
+                    return false;
+                }else{
+                    //якщо знайдено, то ставимо номер припаркованого засобу у len комірок починаючи з id
+                    for (let i = id; i<id+len; i++){
+                        this.slots[i] = vehicle.license;
+                    }
+                    return true;
+                }
+            }
+            //засіб руху з номерним знаком намагається покинути парковку 
+            retrieve(license){
+                let res=false;
+                for (let i=0; i<this.slots.length; i++){
+                    if (this.slots[i]==license){
+                        this.slots[i] = null;
+                        res=true;
+                    }
+                }
+                return res;
+            }
+            //функція повертає індекс початку першого безперервного сегменту пустих слотів довжини len
+            //або -1 якщо такий сегмент не існує
+            findStartOfFreeSlotsSegment(len){
+                let res=-1;
+                //пробігаємося по слотах
+                //знаходимо слот з null
+                //і так щоб len-1 слотів після нього також були null
+                for (let i=0; i<this.slots.length; i++){
+                    if (this.slots[i]==null){//знайшли слот з null
+                        let canPlace = true;//попередньо вважаємо, що можемо поставити у слот i
+                        
+                        //перевірка решти слотів
+                        for (let j=i+1; j<i+len; j++){
+                            if (this.slots[j]!==null){
+                                canPlace = false;
+                                break;
+                            }
+                        }
+
+                        if (canPlace){
+                            res=i;
+                            break;
+                        }
+
+                    }
+                }
+                return res;
+            }
+
+            //показує поточний стан парковки
+            show(){
+                console.log("Parking now:")
+                console.log(this.slots)
+                console.log("___________")
+            }
+        }
+
+        let p = new ParkingLot(4);
+        p.show()
+        p.park(new Bike("B1"))
+        p.show()
+        p.park(new Car("C1"))
+        p.show()
+        
+        p.park(new Van("V1"))
+        p.show()
+        /*
+        class Block {
+            constructor(ar){
+                this.width = ar[0];
+                this.length = ar[1];
+                this.height = ar[2];
+            }
+            getWidth(){
+                return this.width;
+            }
+            getLength(){
+                return this.length
+            }
+            getHeigth(){
+                return this.height
+            }
+            getVolume(){
+
+            }
+            getSurfaceArea(){
+
+            }
+        }
+
+        let b = new Block([12,4,6])
+        console.log(b.getWidth())*/
+    </script>
+</body>  
+</html>

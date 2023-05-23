@@ -1,0 +1,98 @@
+<html>
+    <head>
+    </head>
+    <body>  
+        <script>
+            class Person{
+                constructor(fn, ln){
+                    this.numNameChanges = 0;
+
+                    this._firstName = fn;
+                    this.lastName = ln;
+                    //this.fullName = this.firstName+" "+this.lastName
+                }
+                //використовуємо геттер - функцію, 
+                //що для зовнішнього користувача виглядає як змінна
+                get fullName(){
+                    return this._firstName+" "+this.lastName
+                }
+               
+                //сеттер - це функція від параметру
+                //що для зовнішнього користувача виглядає як змінна
+                //вона може щось змінювати та викликати інші супутні обчислення
+                set firstName(n){
+                    //при зміні імені збільшуємо рахівних кількості змін
+                    if (this._firstName != n){
+                        this.numNameChanges++;
+                    }
+                    this._firstName = n;
+                }
+   
+                get firstName(){
+                    return this._firstName;
+                }             
+            }
+
+            let p = new Person("John","Snow");
+            console.log("first name = ",p.firstName)
+            console.log("full name = ",p.fullName)
+
+            p.firstName = "Bill";
+            console.log("first name = ",p.firstName)
+            console.log("full name = ",p.fullName)
+
+            //розглядаємо піраміду з кубіків висоти h
+            //треба дізнатися, скільки в ній всього кубіків
+            //застосуємо кілька оптимізацій, щоб не перераховувати цю кількість кожен раз
+            class Pyramid{
+                static preCalculatedCubes=[];//усі піраміди матимуть доступ до попередньо обчислених значень кількості кубів
+                
+                constructor (h){
+                    this.cachedCubes = -1;//попередньо обчислена кількість кубів
+                    this._height = h;
+                }
+                get numCubes(){
+                    if (this.cachedCubes == -1){//якщо ми не обчислювали кількість кубів попередньо,
+                        //то спочтаку дізнаємося,
+                        //раптом якась інша піраміда це вже очбислювала
+                        if (Pyramid.preCalculatedCubes[this.height]){//якщо тут не null
+                            this.cachedCubes = Pyramid.preCalculatedCubes[this.height]
+                        }else{
+                            //то обчислимо
+                            let res=0;
+                            for (let i=1; i<=this.height; i++){
+                                res+=i*i;
+                            }
+                            this.cachedCubes = res; 
+                            //і запишемо в  preCalculatedCubes
+                            Pyramid.preCalculatedCubes[this.height] = this.cachedCubes;                    
+                        }
+                   
+                    }
+                    //і будемо брати надалі це число
+                    return this.cachedCubes;
+                }
+
+                get height(){
+                    return this._height;
+                }
+                set height(h){
+                    this._height=h;//виставляємо нову висоту
+                    this.cachedCubes = -1//скидаємо попередньо обчислену кількість кубів
+                }
+            }
+            let pr = new Pyramid(2);
+            console.log(pr.numCubes)
+
+            pr.height = 3;
+            console.log(pr.numCubes)
+
+            pr.height = 5;
+            console.log(pr.numCubes)
+            console.log(pr.numCubes)
+            console.log(pr.numCubes)
+
+            //
+        </script>
+    </body>
+</html>

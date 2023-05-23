@@ -1,0 +1,242 @@
+<html>
+    <head>
+        <script src="pixi.js"></script>
+    </head>
+    <body>
+        <script>
+                class Cell extends PIXI.Container{
+                    constructor(world, cx,cy){
+                        super();
+                        //клітина отримує свій світ та координати у сітці
+                        this.world = world;
+                        //координати у сітці
+                        this.cx = cx;
+                        this.cy = cy;
+                        //координати на екрані при відображенні
+                        this.x = this.cx*this.world.gridSide;
+                        this.y = this.cy*this.world.gridSide;
+
+                        //додаємо на клітину графіку - квадратик
+                        this.image = PIXI.Sprite.from('img1.png');
+                        this.image.scale.set(0.07)
+                        this.image.anchor.set(0,0);
+                        this.addChild(this.image);
+                        
+                        //при створенні значення клітини клітина стає випадково 0 чи 1
+                        this.value = Math.floor(Math.random()*world.numColors);
+
+                        //і показує себе
+                        this.showState()
+                        //якою клітина має стати на наступному кроці
+                        this.nextValue = this.value;
+                    }
+
+                    showState(){
+                        //якщо клітина існує, колір буде зеленим, а якщо нема - чорним
+                        let r = (31*this.value)%255;
+                        let g = (101*this.value)%255;
+                        let b = (7*this.value)%255;
+
+                        this.image.tint = r*256*256+g*256+b;
+                        /*
+                        if (this.value == 1){
+                            this.image.tint = 0x00ff00
+                        }else{
+                            this.image.tint = 0x000000
+                        } 
+                        */ 
+                       
+                        
+
+                    }
+                }
+
+                class LifeWorld{
+                    constructor(stage) {
+                        this.delta = 0;
+
+                        this.numColors = 24;
+
+                        this.stage = stage;
+                        
+                        this.cells = [];//клітини які живуть у світі
+                        
+                        this.mouseX = 0;//координати миші
+                        this.mouseY = 0;
+
+                        this.gridSide = 4;
+
+                        //скільки буде клітинок на екрані у ширину та у висоту
+                                                //замість this.stage беремо app.view
+                        this.dimX = Math.floor(app.view.width/this.gridSide);
+                        this.dimY = Math.floor(app.view.height/this.gridSide);
+
+                        //сторюємо прямокутний масив розмірами this.dimY рядків та this.dimX стовпців
+                        for (let y=0; y<this.dimY; y++){
+                            let rowAr = [];//сторюємо рядок
+                            for (let x=0; x<this.dimX; x++){
+                                //у рядок записуємо випадкові числа 0 чи 1
+                                //переписали, щоб це були не просто числа, а об'єкти - клітини
+                                let c = new Cell(this, x, y);
+                                this.stage.addChild(c)
+                                rowAr.push(c);
+                            }
+                            this.cells.push(rowAr)
+                        }
+
+                        /*
+                        this.cachedNeighVals = [];//
+                        for (let y=0; y<this.dimY; y++){
+                            let ar1 = [];//
+                            for (let x=0; x<this.dimX; x++){
+                                let c = new Cell(this, x, y);
+                                ar1.push(this.countNeighboursAround(x,y,5)+c.value);
+                            }
+                            this.cachedNeighVals.push(ar1)
+                        }*/
+
+                    }
+
+                    handleKeyDown(e){
+                        this.updateState();
+                    }
+
+                    handlePointerDown(e){//подія натискання миші
+                        //ми знаємо, де натиснули мишею
+                        //e.global.x
+                        //e.global.y
+                        //console.log(e.global.x,e.global.y)
+                        //як знайти, на яку клітину натиснули?
+                        let cx = Math.floor(e.global.x/this.gridSide)
+                        let cy = Math.floor(e.global.y/this.gridSide)
+
+                        if ((cx>=0)&&(cx<this.dimX)&&(cy>=0)&&(cy<this.dimY)){
+                            let c = this.cells[cy][cx];
+                            c.value = (c.value+1)%this.numColors;
+                            c.showState();
+                        }
+                        
+                    }
+
+                    updateState(){
+                        this.delta = 2//Math.floor(Math.random()*this.numColors);
+
+                        //пробігаємося по клітинах і знаходимо для них всіх, якими вони мають стати
+                        for (let y = 0; y<this.dimY; y++){
+                            for (let x = 0; x<this.dimX; x++){
+                                let c = this.cells[y][x];
+                                let r = 1;
+                                for (let i=x-r; i<=x+r; i++){
+                                    for (let j=y-r; j<=y+r; j++){
+                                        let c1 = this.cells[(j+this.dimY)%this.dimY][(i+this.dimX)%this.dimX];
+                                        if (c1.value==(c.value+this.delta)%this.numColors){
+                                            c1.nextValue = c.value
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        for (let y = 0; y<this.dimY; y++){
+                            for (let x = 0; x<this.dimX; x++){
+                                let c = this.cells[y][x];
+                                //if (c.nextValue!=c.value){
+                                //    this.updateCacheAround(x, y, 5, )
+                                //}
+                                c.value = c.nextValue;
+                                c.showState();
+                            }
+                        }                     
+                    }
+                    
+
+                    //знаходимо кількість кілтин навколо клітини (x, y) та дистанцією r або менше
+                    countNeighboursAround(x, y, r){
+                        var res=0;
+                        for (let i=x-r; i<=x+r; i++){
+                            for (let j=y-r; j<=y+r; j++){
+                                //впевнені, що не вийшли за границі масиву
+                                //if ((i>=0)&&(i<this.dimX)&&(j>=0)&&(j<this.dimY)){
+                                    if ((i!=x)||(j!=y)){//саму клітину не враховуємо у сусідів
+                                        let c = this.cells[(j+this.dimY)%this.dimY][(i+this.dimX)%this.dimX];
+                                        res+=c.value;
+                                    }
+                                //}
+                            }
+                        }
+                        return res;
+                    }
+
+                    drawCells(){
+                        for (let y = 0; y<this.dimY; y++){
+                            for (let x = 0; x<this.dimX; x++){
+                                let c = this.cells[y][x];
+                                c.showState();
+                            }
+                        }                        
+                    }
+
+                    countCells(){//визначитии кількість зелених клітинок
+                        return 0
+                    }
+
+
+
+                    clearCells(){//очистити всі клітинки світу
+                        for (let y = 0; y<this.dimY; y++){
+                            for (let x = 0; x<this.dimX; x++){
+                                let c = this.cells[y][x];
+                                c.value = 0;
+                                c.showState();
+                            }
+                        } 
+                    }
+                    initRandom(){//інінціалузувати кожну клітинку число 0 чи 1 випадково
+                        for (let y = 0; y<this.dimY; y++){
+                            for (let x = 0; x<this.dimX; x++){
+                                let c = this.cells[y][x];
+                                c.value = Math.floor(Math.random()*16);
+                                c.showState();
+                            }
+                        } 
+                    }
+
+                    initBlocks(d1, d2){
+                        for (let y = 0; y<this.dimY; y++){
+                            for (let x = 0; x<this.dimX; x++){ 
+                                let c = this.cells[y][x];
+                                if ((x%(2+d1)>=2)||(y%(2+d2)>=2)){
+                                    c.value = 0
+                                }else{
+                                    c.value = 1;
+                                }
+                                c.showState();
+                            }
+                        }                         
+                    }
+                }
+
+                let app = new PIXI.Application({width: 1400, height: 700});
+                document.body.appendChild(app.view);
+
+                let world = new LifeWorld(app.stage)
+
+                app.stage.interactive = true;
+                app.stage.hitArea = app.screen;
+                    
+                document.addEventListener("keydown",(e)=>{
+                     world.handleKeyDown(e)
+                })
+                app.stage.addEventListener('pointerdown', (e)=>{
+                    world.handlePointerDown(e)
+                });                
+
+                //function update(){
+                //    world.updateState()
+                //}                
+                //setInterval(update,50)
+
+                //world.createInitialObjects();
+        </script>
+    </body>
+</html>

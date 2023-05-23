@@ -1,0 +1,299 @@
+<html>
+    <head>
+        <script src="pixi.js"></script>
+    </head>
+    <body>
+        <script>
+            class PoolOfCards{
+                static self
+                constructor(){
+                    PoolOfCards.self=this;
+                    this.pool = [];
+                }
+                giveCard(value, suit){//якщо зовнішній користувач запитав карту
+                    //чи є карти у пулі?
+                    let res = this.pool.shift();
+                    if (!res){//якщо з пула не вдалося дістати карту
+                        //то створюємо її
+                        res=new Card(value, suit)
+                    }else{//а якщо вдалося, то виставляємо параметри карти на потрібні
+                        res.value = value;
+                        res.suit = suit;
+                    }
+                    return res;
+                }
+                takeCard2Pool(crd){
+                    this.pool.push(crd);//додаємо карту до пула
+                }
+            }
+
+            class Card{
+                constructor(v, s){
+                    this.value = v; //2-10 - цифри, 11 - валет, 12 - дама, 13 - король 14 - туз
+                    this.suit = s;  //0-чирва, 1 - бубна, 2 - хресті, 3 - пікі
+                }
+
+                toString(){
+                    let valuesNames = ["","","двійка","трійка","четвірка","п'ятірка",
+                                        "шістка","сімка","вісімка","дев'ятка","десятка",
+                                        "валет","дама","король","туз"]
+
+                    let suitsNames = ["чирв", "бубен", "хрестів", "пік"]
+                    
+                    return valuesNames[this.value]+" "+suitsNames[this.suit]
+
+                }
+
+                makeSymbolForValue(){
+                    switch (this.value){
+                        case 14:{
+                            return "A";
+                        }
+                        case 13:{
+                            return "K";
+                        }
+                        case 12:{
+                            return "Q";
+                        }
+                        case 11:{
+                            return "J";
+                        }
+                        default:{
+                            return ""+this.value;
+                        }
+                    }
+                }
+            }
+
+            class CardVisual extends PIXI.Container{
+                constructor(crd){
+                    super()
+                    this.card = crd;
+                    this.baseImage = PIXI.Sprite.from('cardbase.png');
+                    this.baseImage.anchor.set(0.5,0.5);
+                    this.baseImage.scale.set(0.6)
+                    this.addChild(this.baseImage);    
+                    
+                    this.signImage = PIXI.Sprite.from('cardsigns_'+this.card.suit+'.png');
+                    this.signImage.y = 30;
+                    this.signImage.anchor.set(0.5,0.5);
+                    this.signImage.scale.set(0.6)
+                    this.addChild(this.signImage);    
+                    
+                    this.symbolText = new PIXI.Text(this.card.makeSymbolForValue(),{align:'center'});
+                    this.symbolText.y = -30;
+                    this.symbolText.anchor.set(0.5,0.5);
+                    this.addChild(this.symbolText);    
+                }
+            }
+
+            class Deck{
+                //обмежимо доступ ззовні до масиву cards
+                #cards //приватне поле оголошується решіткою перед іменем
+                constructor(){
+                    this.#cards = [];
+                }
+                //ініціалізація повної колоди
+                initDeck(){
+                    //при ініціалізації не будемо просто скидати lenghth в 0
+                    //this.#cards.length = 0;
+                    //а спершу пробіжимося по картах та повернемо їх до пулу
+                    for (let i=0; i<this.#cards.length; i++){
+                        PoolOfCards.self.takeCard2Pool(this.#cards[i])
+                    }
+                    this.#cards.length = 0;
+
+                    for (let i=0; i<=3; i++){
+                        for (let j=2; j<=14; j++){
+                            //this.#cards.push(new Card(j,i))
+                            this.#cards.push(PoolOfCards.self.giveCard(j,i))
+                        }
+                    }
+                }
+                //перетасовування колоди
+                shuffle(){
+                    for (let i=0; i<this.#cards.length; i++){
+                        let j = Math.floor(Math.random()*this.#cards.length);
+
+                        let t = this.#cards[i];
+                        this.#cards[i]=this.#cards[j];
+                        this.#cards[j]=t;
+                    }
+                }
+                //видати карту
+                dealCard(){
+                    return this.#cards.shift()
+                }
+                //дізнатися поточну кількість карт
+                getCardsNumber(){
+                    return this.#cards.length;
+                }
+            }
+            
+            class State {
+                        constructor(world){
+                            this.world = world
+                        }
+                        step(dt){
+
+                        }
+                        handlePointerDown(e){
+                          
+                        }
+                        handlePointerUp(e){
+                          
+                        }
+                        handleKeyDown(e){
+
+                        }
+                        handlePointerMove(e){
+                            this.world.mouseX = e.global.x
+                            this.world.mouseY = e.global.y
+                        }
+                        initialize(param){//ініціалізація стейту в залежності від параметрів
+
+                        }
+                        finalize(){
+
+                        }
+                }
+
+            class NormalState extends State{
+                handlePointerDown(e){
+                    //пробігаємося по всіх картах світу і дізнаємося, чи ми натиснули на якусь
+                    let cv = this.world.findCardUnderMouse();
+                    if (cv){
+                        this.world.startState(DragState,{card:cv});
+                    }
+                }
+            }
+            class DragState extends State{
+                constructor(world){
+                    super(world);
+                    this.draggedCard = null;
+                    this.x0 = 0;
+                    this.y0 = 0;
+                }
+                initialize(param){//ініціалізація стейту в залежності від параметрів
+                    this.draggedCard = param.card;
+                    this.x0 = this.world.mouseX;
+                    this.y0 = this.world.mouseY;
+                }                
+                handlePointerMove(e){//
+                    super.handlePointerMove(e)
+                    this.draggedCard.x+=this.world.mouseX-this.x0;
+                    this.draggedCard.y+=this.world.mouseY-this.y0;
+                    this.x0 = this.world.mouseX;
+                    this.y0 = this.world.mouseY;                    
+                }
+                handlePointerUp(e){
+                    this.world.startState(NormalState,null);
+                }
+            }
+
+            class World {
+                constructor(stage) {
+                    this.stage = stage;
+                    this.deck = new Deck();
+                    this.cards = [];
+
+                    this.mouseX = 0;
+                    this.mouseY = 0;
+
+                    this.currentState = new NormalState(this);
+
+                }
+                createInitialObjects(){
+                    this.deck.initDeck();
+                    this.deck.shuffle();
+
+                    //витягнемо з колоди 5 карт і постворюємо для них візуалізації
+                    for (let i=0; i<5; i++){
+                        let c = this.deck.dealCard();
+                        let cv = new CardVisual(c);
+                        cv.x = 50+i*100;
+                        cv.y = 250;
+                        app.stage.addChild(cv)
+                        this.cards.push(cv)
+                    }
+                }
+
+                findCardUnderMouse(){
+                    let res=null;
+                    for (let i=0; i<this.cards.length; i++){
+                        let c = this.cards[i];
+                        let dx = this.mouseX-c.x;
+                        let dy = this.mouseY-c.y;
+                        if (Math.abs(dx)<c.width*0.5){
+                            if (Math.abs(dy)<c.height*0.5){
+                                res=c;
+                                break;
+                            }
+                        }
+                    }
+                    return res;
+                }
+
+                startState(stateClass,param){
+                    this.currentState.finalize();
+                    this.currentState = new stateClass(this);
+                    this.currentState.initialize(param);
+                }
+                step(dt) {
+                  this.currentState.step(dt);
+                }
+
+                handlePointerMove(e) {
+                 this.currentState.handlePointerMove(e)
+                }
+                handleKeyDown(e) {
+                    this.currentState.handleKeyDown(e)        
+                }
+                handlePointerDown(e) {
+                   this.currentState.handlePointerDown(e);
+                }
+                handlePointerUp(e) {
+                   this.currentState.handlePointerUp(e);
+                }
+                
+             }
+
+        let p123 = new PoolOfCards();
+
+                    let app = new PIXI.Application({width: 800, height: 600});
+                    document.body.appendChild(app.view);
+
+                    let world = new World(app.stage);
+
+                    app.stage.interactive = true;
+                    app.stage.hitArea = app.screen;
+
+                    
+                    app.stage.addEventListener('pointermove',(e)=>{
+                        world.handlePointerMove(e)
+                    });
+                    app.stage.addEventListener('pointerdown', (e)=>{
+                        world.handlePointerDown(e)
+                    });
+                    app.stage.addEventListener('pointerup', (e)=>{
+                        world.handlePointerUp(e)
+                    });
+                    app.stage.addEventListener('pointerupoutside', (e)=>{
+                        world.handlePointerUp(e)
+                    });
+                    document.addEventListener("keydown",(e)=>{
+                        world.handleKeyDown(e)
+                    })
+
+                world.createInitialObjects();
+
+                    //function update(dt){
+                    //    world.step(dt);
+                    //}
+
+                //app.ticker.add(update)
+                
+            
+        </script>
+    </body>
+</html>

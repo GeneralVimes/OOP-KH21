@@ -1,0 +1,124 @@
+<html>
+<head>
+</head>   
+<body>
+    <script>
+        class Checker{
+            constructor(side, coord){
+                this.side=side;         //side 1 - білий, 0 - чорний
+                this.coord=coord;       //coord - номер клітини у полі
+            }
+        }
+
+        class Move{
+            constructor(cFrom, cTo){//хід - це пара номерів полів: з якого можна робити хід та на яке можна робити хід
+                this.cellFrom = cFrom
+                this.cellTo = cTo
+            }
+        }
+
+        class Field{
+            constructor (size){
+                this.size = size;//розмір поля
+                this.cells=[];
+                //треба створити this.size пустих клітинок у масиві this.cells
+                for (let i=0; i<this.size; i++){
+                    this.cells.push(null);
+                }
+                this.init();
+            }
+            init(){
+                //треба заповнити ліву частину поля білими фішками, праву - чорними
+                //залишивши 3 чи 2 поля вільних між ними
+
+                let maxWhiteIndex = Math.floor(this.size/2)-1
+
+                for (let i=0; i<this.size; i++){
+                    if (i<maxWhiteIndex){
+                        this.cells[i] = new Checker(1,i)
+                    }else{
+                        if (i>this.size-1-maxWhiteIndex){
+                            this.cells[i] = new Checker(0,i)
+                        }else{
+                            this.cells[i] = null;
+                        }
+
+                    }
+                }
+
+            }
+            visualize(){
+                //треба відобразити ситуацію на полі у вигляді рядку
+                //де o позначає білу фішку, * позначає чорну, а _ пусту клітинку
+                let res="";
+                for (let i=0; i<this.cells.length; i++){
+                    let cl = this.cells[i];
+                    if (cl){//якщо клітинка існує
+                        if (cl.side==1){
+                            res+="o"
+                        }else{
+                            res+="*"
+                        }
+                    }else{
+                        res+="_"
+                    }
+                }
+                return res;
+
+            }
+
+            findPossibleMoves(side){//створюємо масив з можливими ходами білих чи чорних фішок (в залежності від side)
+                let res=[];
+                for (let i=0; i<this.cells.length; i++){
+                    let ch = this.cells[i];//дивимося, що стоїть на і-й клітинці
+                    if (ch){//якщо це - фішка
+                        if (ch.side==1){//якщо вона - біла
+                            if (i<this.cells.length-1){//якщо справа існує ще одне поле
+                                if (this.cells[i+1]==null){//якщо це поле пусте
+                                    res.push(new Move(i, i+1));
+                                }else{//якщо воно зайняте фішкою, перевіряємо, чи можемо перестрибнути через неї
+                                    if (i<this.cells.length-2){//якщо справа існує ще два поля
+                                        if (this.cells[i+2]==null){//якщо це поле пусте
+                                            res.push(new Move(i, i+2));
+                                        }
+                                    }
+                                }
+                            }
+                        }else{//якщо вона - чорна
+                            if (i>0){//якщо зліва існує ще одне поле
+                                if (this.cells[i-1]==null){//якщо це поле пусте
+                                    res.push(new Move(i, i-1));
+                                }else{//якщо воно зайняте фішкою, перевіряємо, чи можемо перестрибнути через неї
+                                    if (i>1){
+                                        if (this.cells[i-2]==null){
+                                            res.push(new Move(i, i-2));
+                                        }
+                                    }
+                                }
+
+                            }
+                        }
+                    }
+                }
+                return res;
+            }
+
+            makeMove(m){//виконання ходу m  - перенос фішки з клітини m.cellFrom на клітину m.cellTo
+                let c = this.cells[m.cellFrom]; //беремо фішку з початкового поля ходу
+                if (c){                             //якщо фішка на цьому полі існує
+                    this.cells[m.cellFrom] = null;  //очищаємо це поле
+                    this.cells[m.cellTo] = c;       //ставимо фішку на кінцеве поле ходу
+                    c.coord = m.cellTo;             //оновлюємо координату у фішці                    
+                }
+
+            }
+        }
+
+        let field = new Field(8);
+        field.init();
+        console.log(field.visualize())
+
+
+    </script>
+</body>
+<html>

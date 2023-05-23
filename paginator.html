@@ -1,0 +1,97 @@
+<html>
+<head>
+</head>   
+<body>
+    <script>
+        //Створити клас Paginator, призначенням якого буде розбиття масиву інформації на сторінки
+        //Цей клас має отримати масив даних
+        //Кількість даних на одній сторінці
+        //Та вміти обрати з масиву підмасив для відображення на конретній сторінці
+        //також вміти перебудувати зображення при зміні розміру сторінки
+        //
+        class Paginator{
+            constructor(data, sz){
+                //клас має ініціалізуватися набором даних (масив) та розміром сторінки
+                this.data = data;
+                this.pageSize = Math.floor(sz);
+                this.currentPageId = 0;//запам'ятовуємо номер поточної сторінки
+            }
+            //показати підмасив даних на сторінці id
+            showPageOfId(id){
+                id = Math.floor(id);
+                this.currentPageId = id;//при відображенні сторінки за номером запам'ятовуємо її номер
+                let res=[];
+                //заповнити цей res елементами з this.data, враховуючи this.pageSize та id
+                //помічаємо, що сторінка з індексом id починається з елемента з номером (this.pageSize * id)
+                //res.push(this.data[this.pageSize * id])
+                //на сторінці буде або this.pageSize або менше, якщо це остання сторінка
+                let numElementsOnPage = this.findNumElementsOnPage(id);
+                let i0 = this.pageSize * id;
+                for (let i=i0; i<i0+numElementsOnPage; i++){
+                    res.push(this.data[i])
+                }
+                return res;
+            }
+            //додамо ще 2 функції - відображення наступної сторінки та попередньої
+            showNextPage(){
+                //if ???
+                //TODO:
+                //відображати наступну сторінку лише тоді, коли ця сторінка - не остання
+                //в інакшому випадку - відображати поточну сторінку
+                return this.showPageOfId(this.currentPageId+1)
+            }
+            showPrevPage(){
+                if (this.currentPageId>0){
+                    return this.showPageOfId(this.currentPageId-1)
+                }else{
+                    return this.showPageOfId(this.currentPageId)
+                }
+                
+            }
+            //зробіть так, що коли ми на першій сторінці, то showPrevPage не буде змінювати this.currentPageId
+            //а коли на останній - то showNextPage не буде змінювати this.currentPageId
+
+
+            //службова функція для визначення кількості елементів на сторінці з індексом id
+            findNumElementsOnPage(id){
+                if (id<0){
+                    return 0;
+                }
+
+                id = Math.floor(id)
+                if((id+1)*this.pageSize-1<this.data.length){//якщо при повному наповненні сторінки елемент знайдеть в масиві
+                    return this.pageSize;
+                }else{
+                    //якщо при цьому перший елемент є у масиві, повертаємо остачу від ділення
+                    if (id*this.pageSize<this.data.length){
+                        return this.data.length % this.pageSize;
+                    }else{//інакше повертаємо 0
+                        return 0;
+                    }
+                    
+                }
+                
+            }
+
+            //змінити кількість елементів на одній сторінці
+            setNewPageSize(sz){
+                sz = Math.floor(sz)
+                this.pageSize = sz;
+            }
+        }
+        let pg = new Paginator(["A","B","C","D","E","F","G","H"],3);
+        console.log(pg.showPageOfId(0))//["A","B","C"]
+        console.log(pg.showNextPage())//["D","E","F"]
+        console.log(pg.showNextPage())//["G","H"]
+        console.log(pg.showPrevPage())//["D","E","F"]
+
+    //    console.log(pg.showPageOfId(1))//["D","E","F"]
+    //    console.log(pg.showPageOfId(2))//["G","H"]
+    //    console.log(pg.showPageOfId(3))//[]
+    //    pg.setNewPageSize(5);
+    //    console.log(pg.showPageOfId(0))//["A","B","C","D","E"]
+    //    console.log(pg.showPageOfId(1))//["F","G","H"]
+    //    console.log(pg.showPageOfId(2))//[]     
+    </script>
+</body>  
+</html>         

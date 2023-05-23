@@ -1,0 +1,55 @@
+<html>
+<head>
+</head>   
+<body>
+    <script>
+        function checkPrime(n){
+            if (n==2){//число 2 - просте
+                return true;
+            }
+
+            if (n%2==0){//усі інші парні числа - складені
+                return false;
+            }
+            //для решти чисел перебираємо лише непарні дільники
+            for (let i=3; i<=Math.sqrt(n); i+=2){
+                if (n%i==0){
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        console.log(2, checkPrime(2))
+        console.log(3, checkPrime(3))
+        console.log(4, checkPrime(4))
+        console.log(5, checkPrime(5))
+        console.log(6, checkPrime(6))
+
+        let t = Date.now();
+        console.log(999999937, checkPrime(999999937))
+        console.log(Date.now()-t)
+ 
+        t = Date.now();
+        console.log(5915587277, checkPrime(5915587277))
+        console.log(Date.now()-t) 
+        
+        
+        function listAllDivisors(n){
+            var res=[];
+            for (let i=1; i<=n; i++){
+                if (n%i==0){
+                    res.push(i)
+                }
+            }
+            return res;
+        }
+
+        console.log(5, listAllDivisors(5))
+        console.log(8, listAllDivisors(8))
+        console.log(10, listAllDivisors(10))
+        console.log(72, listAllDivisors(72))
+        
+    </script>
+</body>  
+</html>        

@@ -1,0 +1,503 @@
+<html>
+    <head>
+        <script src="pixi.js"></script>
+    </head>
+    <body>
+        <script>
+                class State {
+                        constructor(world){
+                            this.world = world
+                        }
+                        step(dt){
+
+                        }
+                        handlePointerDown(e){
+                          
+                        }
+                        handlePointerUp(e){
+                          
+                        }
+                        handleKeyDown(e){
+
+                        }
+                        handlePointerMove(e){
+                            this.world.mouseX = e.global.x
+                            this.world.mouseY = e.global.y
+                        }
+                        initialize(){
+
+                        }
+                        finalize(){
+
+                        }
+                }
+
+                class NormalState extends State{
+                        constructor(world){
+                            super(world);
+                        }
+                        step(dt){
+                            this.world.doNormalStep(dt);
+                            this.world.doObjectsRemoval()
+                        }
+                        handlePointerDown(e){
+                          this.world.player.accelerate();
+                        }
+                        handlePointerUp(e){
+                            this.world.player.stopAcceletating();
+                        }
+                        handleKeyDown(e){
+                                if(e.code=="F9"){
+                                    this.world.startState(PauseState)
+                                }
+                    }
+                }
+
+                class PauseState extends State{
+                    constructor(world){
+                        super(world);
+                    }
+                    handleKeyDown(e){
+                        if(e.code=="Space"){
+                            this.world.startState(NormalState)
+                        }
+                        if(e.code=="Enter"){
+                            this.world.startState(EditorState)
+                        }
+                    }
+
+                    handlePointerDown(e){
+                            this.world.createObjectOfClass(Spawner, e.global.x, e.global.y );
+                        }
+                }
+
+                class GameOverState extends State {
+                        constructor(world){
+                            super(world);
+                        }
+                        initialize(){
+                            console.log("Game over.Your score:", this.world.player.score)
+                        }
+                        handleKeyDown(e){
+                            if(e.code=="Space"){
+                                this.world.clearAllObjects();
+                                this.world.createInitialObjects();
+                                this.world.startState(NormalState)
+                            }
+                        }
+
+                     }
+
+                class EditorState extends State{
+                    constructor(world){
+                        super(world);
+                        this.creatorClass = Food
+                    }
+                    handlePointerDown(e){
+                        this.world.createObjectOfClass(this.creatorClass, e.global.x, e.global.y );
+                    }
+
+                    handleKeyDown(e){
+                        if(e.code=="Enter"){
+                            this.world.startState(NormalState)
+                        }
+
+                        if(e.code=="Digit1"){
+                            this.creatorClass = Food
+                        }
+                        if(e.code=="Digit2"){
+                            this.creatorClass = Enemy
+                        }
+                        if(e.code=="Digit3"){
+                            this.creatorClass = Spawner
+                        }
+                        if(e.code=="Digit4"){
+                            this.creatorClass = Player
+                        }
+                    }
+                }
+
+            class World {
+                constructor(stage) {
+                    this.stage = stage;
+                    this.objects = [];
+
+                    this.mouseX = 0;
+                    this.mouseY = 0;
+
+                 this.currentState = new NormalState(this);
+
+                }
+                startState(stateClass){
+                    this.currentState.finalize();
+                    this.currentState = new stateClass(this);
+                    this.currentState.initialize();
+                }
+                step(dt) {
+                  this.currentState.step(dt);
+                }
+
+                doNormalStep(dt){
+                    for (let i=0; i<this.objects.length; i++){
+                        let ob = this.objects[i];
+                        ob.step(dt);
+                        ob.makeDecision();
+                        ob.checkCollision();
+                    }
+                }
+                doObjectsRemoval(){
+                    for (let i=this.objects.length-1; i>=0; i--){
+                        let ob = this.objects[i];
+                        if (ob.mustBRemoved){
+                            this.stage.removeChild(ob);
+                            this.objects.splice(i,1);
+                        }
+                    }
+                }
+
+                createMovingObject(x, y, c, v){
+                    let movingObject = new MovingObject(x,y,c,v);
+                    this.stage.addChild(movingObject);
+                    this.objects.push(movingObject);
+                }
+
+                createPlayer(x, y){
+                    this.player = this.createObjectOfClass(Player, x, y)
+                }
+
+                createEnemy(x, y){
+                    this.createObjectOfClass(Enemy, x, y)
+                }
+
+                createSpawner(x,y){
+                    this.createObjectOfClass(Spawner, x, y)
+                }
+
+                clearAllObjects(){
+                    for (let i=this.objects.length-1; i>=0; i--){
+                        let ob = this.objects[i];
+                         this.stage.removeChild(ob);        
+                    }
+                          this.objects.length = 0;
+                         this.player = null;
+                }
+                createInitialObjects(){
+                   this.createPlayer(250,350)
+                   //this.createObjectOfClass(Defender,0,0);
+                   //this.createObjectOfClass(Defender,0,0);
+                   this.createSpawner(450,550)
+
+                    for (let i=0; i<100; i++){
+                        this.createObjectOfClass(Food, 320,230)
+                    }
+                }
+                createObjectOfClass(cl, x ,y){
+                    let ob = new cl(x, y);
+                    this.stage.addChild(ob);
+                    this.objects.push(ob);
+
+                    return ob;
+                }
+                handlePointerMove(e) {
+                 this.currentState.handlePointerMove(e)
+                }
+                handleKeyDown(e) {
+                    this.currentState.handleKeyDown(e)        
+                }
+                handlePointerDown(e) {
+                   this.currentState.handlePointerDown(e);
+                }
+                handlePointerUp(e) {
+                   this.currentState.handlePointerUp(e);
+                }
+                listEnemiesAround(ob, rad) {
+                    let res =[];
+                    for(let i=0; i<this.objects.length; i++){
+                        let ob1 = this.objects[i];
+                        if (ob1!=ob) {
+                            if(ob1 instanceof Enemy){
+                                let dx = ob1.x-ob.x;
+                                let dy = ob1.y-ob.y;
+                                
+                                if(dx*dx+dy*dy<=rad*rad){
+                                    res.push(ob1);
+                                }
+                            }
+                        }
+                    }
+                    return res;
+                }
+             }
+            class MovingObject extends PIXI.Container{
+        
+                constructor(x, y, c, v){
+                    super();
+                    this.mustBRemoved = false;
+                    this.x = x;
+                    this.y = y;
+                    this.course = c;
+                    this.speed = v;
+                    this.turnSpeed = 0.5;
+                    this.targetCourse = this.course;
+
+                    this.image = PIXI.Sprite.from('img1.png');
+                    this.image.scale.set(0.25)
+                    this.image.anchor.set(0.5,0.5);
+                    this.addChild(this.image);
+                }
+                step(dt){
+                    let dPhi = this.targetCourse-this.course;
+                        if(dPhi!=0){
+                            if(dPhi>Math.PI){
+                                dPhi -= 2*Math.PI;
+                            }
+
+                            if(dPhi<-Math.PI){
+                                dPhi += 2*Math.PI;
+                            }
+
+                            let maxTurn = this.turnSpeed*dt;
+                            
+                            if (Math.abs(dPhi)<=maxTurn){
+                                this.course = this.targetCourse;
+                            }else{
+                                this.course+=maxTurn*Math.sign(dPhi);
+                            }
+                        }           
+                        let vx = this.speed*Math.sin(this.course);
+                        let vy = -this.speed*Math.cos(this.course);
+                        this.x+=vx*dt;
+                        this.y+=vy*dt;
+                        this.rotation = this.course;
+                        }
+
+            makeDecision(){
+
+            }
+
+            checkCollision(){
+
+            }
+            
+            move2Point(x1, y1){
+                let dx = x1 - this.x;
+                let dy = y1 - this.y;
+                let phi = Math.atan2(dx, -dy);
+
+                this.targetCourse = phi;
+            }
+         }
+        
+        class Player extends MovingObject{
+                constructor(x, y) {
+                    super(x, y, 0, 3)
+                    
+                    this.hpbar = PIXI.Sprite.from('hpbar.png');
+                    this.hpbar.anchor.set(0,0.5);
+                    this.hpbar.y = -20;
+                    world.stage.addChild(this.hpbar);
+
+                    this.speed0 = this.speed;
+                    this.accelerateSpeed = 2*this.speed0
+                    this.image.tint = 0x00ff00
+                    this.hitPoints = 100;
+                    this.score = 0;
+                    this.energy = 10;
+                    this.isAccelerating = false;
+                    }
+                    step(dt){
+                        super.step(dt);
+                        if(this.isAccelerating){
+                            this.energy-=dt*0.01;
+                            if(this.energy<=0){
+                                this.energy = 0;
+                                this.stopAcceletating();
+                            }
+                        }else{
+                            if(this.energy<10){
+                                this.energy+=dt*0.001;
+                            }
+                        }
+                        console.log("Speed: ", this.speed);
+                        this.hpbar.x = this.x;
+                        this.hpbar.y = this.y-20;
+                        this.hpbar.scale.set(this.hitPoints/100,1)
+                    }
+                    accelerate(){
+                        if (!this.isAccelerating){
+                            this.speed = this.accelerateSpeed;
+                            this.isAccelerating = true;                            
+                        }
+                    }
+                    stopAcceletating(){
+                        this.speed = this.speed0;
+                        this.isAccelerating = false;
+                    }
+                    makeDecision(){
+                        this.move2Point(world.mouseX, world.mouseY);
+                    }
+                    onFoodEaten(){
+                        this.score+=5;
+                        this.energy+=1;
+                        //ціна дефендерів залежить від їхньої кількості
+                        let nextDefenderPrice = 10*(Defender.numDefenders+1)
+
+                        if (this.energy>=10+nextDefenderPrice){
+                            //щоб було максимум 3 захисника
+                            if (Defender.numDefenders<3){
+                                this.energy-=nextDefenderPrice;
+                                world.createObjectOfClass(Defender,this.x, this.y)                                
+                            }
+
+                        }
+                    }
+            }
+
+            class Enemy extends MovingObject {
+                constructor(x, y) {
+                    super(x, y, 0, 1 + Math.random());
+                    this.image.tint = 0xff0000;
+                }
+                    makeDecision(){
+                        let vec0 = new PIXI.Point(world.player.x-this.x,world.player.y-this.y);
+                        
+                    let otherEnemies=world.listEnemiesAround(this,150);
+                    let vec2=new PIXI.Point(0,0);
+                    for (let i=0; i<otherEnemies.length; i++){
+                            let ob1 = otherEnemies[i]
+                            let dx = ob1.x-this.x;
+                            let dy = ob1.y-this.y;
+                            let d = Math.sqrt(dx*dx + dy*dy);
+                            let coef = (150-d)/d;
+
+                            vec2.x += -coef*dx;
+                            vec2.y += -coef*dy;
+                        }
+                            let vec5 = new PIXI.Point(vec0.x+vec2.x, vec0.y+vec2.y)
+                            this.move2Point(this.x+vec5.x, this.y+vec5.y)
+                        }
+
+                        checkCollision(){
+                            let dx = world.player.x-this.x;
+                            let dy = world.player.y-this.y;
+                            let d = Math.sqrt(dx*dx+dy*dy);
+                            if(d<=22){
+                                this.mustBRemoved = true;
+                                world.player.hitPoints-=10;
+                                if(world.player.hitPoints<=0){
+                                
+                                    world.startState(GameOverState);
+                                }
+                            }
+                        }
+                    }
+                class Spawner extends Enemy {
+                    constructor(x,y){
+                        super(x,y);
+                        this.speed = 0;
+                        this.image.tint = 0xff00ff;
+                        this.timePassed = 0;
+                        this.lastCreationTime = 0
+                    }
+                    step(dt){
+                        super.step(dt)
+                        this.timePassed+=dt;
+                    }
+                    makeDecision(){
+                        super.makeDecision();
+                        if(this.timePassed-this.lastCreationTime>=50) {
+                            world.createEnemy(this.x, this.y);
+                            this.lastCreationTime = this.timePassed;
+                        }
+                    }
+                    checkCollision(){}
+                }
+                class Food extends MovingObject{
+                    constructor(x,y){
+                        super(x,y, 2*Math.PI*Math.random(), 1+Math.random());
+                        this.image.tint = 0xffff00;
+                    }
+                    makeDecision(){
+                        let dx = world.player.x-this.x;
+                        let dy = world.player.y-this.y;
+                        let d = Math.sqrt(dx*dx+dy*dy);
+
+                        if(d<=250){
+                            this.move2Point(this.x-dx, this.y-dy)
+                        } 
+
+                        if ((this.x<0)||(this.x>1900)||(this.y<0)||(this.y>910)){
+                            this.move2Point(Math.random()*1900, Math.random()*910);
+                        }
+                    }
+                    checkCollision(){
+                        let dx = world.player.x-this.x;
+                        let dy = world.player.y-this.y;
+                        let d = Math.sqrt(dx*dx+dy*dy);
+
+                        if (d<=22){
+                            this.mustBRemoved = true;
+                            world.player.onFoodEaten()//всередині цієї функції будемо щось робити гравцю
+                        }
+                    }
+                }
+                class Defender extends MovingObject{
+                    static numDefenders = 0;
+
+                    constructor(){
+                        super(0,0,0,0)
+                        this.image.tint = 0x00ffff
+                        this.phi = Math.random()*2*Math.PI;
+                        this.omega = 0.05*(1+Defender.numDefenders);
+                        this.R = 50+10*Defender.numDefenders;
+
+                        Defender.numDefenders++;
+                    }
+                    step(dt){
+                        this.phi+=this.omega*dt;
+                        this.x = world.player.x+this.R*Math.sin(this.phi)
+                        this.y = world.player.y-this.R*Math.cos(this.phi)
+                    }
+
+                    checkCollision(){
+                        let enemies = world.listEnemiesAround(this,25);
+                        for (let i=0; i<enemies.length; i++){
+                            if (!(enemies[i] instanceof Spawner)){//щоб вбивав лише Enemy, а не Spawner
+                                 enemies[i].mustBRemoved=true;
+                            }
+                        }
+                    }
+                }
+                    let app = new PIXI.Application({width: 1900, height: 910});
+                    document.body.appendChild(app.view);
+
+                    let world = new World(app.stage)
+
+                    app.stage.interactive = true;
+                    app.stage.hitArea = app.screen;
+                    app.stage.addEventListener('pointermove',(e)=>{
+                        world.handlePointerMove(e)
+                    });
+                    app.stage.addEventListener('pointerdown', (e)=>{
+                        world.handlePointerDown(e)
+                    });
+                    app.stage.addEventListener('pointerup', (e)=>{
+                        world.handlePointerUp(e)
+                    });
+                    app.stage.addEventListener('pointerupoutside', (e)=>{
+                        world.handlePointerUp(e)
+                    });
+                    document.addEventListener("keydown",(e)=>{
+                        world.handleKeyDown(e)
+                    })
+
+                world.createInitialObjects();
+
+                    function update(dt){
+                        world.step(dt);
+                    }
+
+                    app.ticker.add(update)
+        </script>
+    </body>
+</html>
